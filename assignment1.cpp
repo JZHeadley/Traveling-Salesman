@@ -52,15 +52,23 @@ double** computeDistanceMatrix(vector<City> cities)
     }
     return distances;
 }
-vector<vector<int> > generateSubsets()
+
+vector<vector<int> > generateSubsets(vector<int> cities, int size)
 {
     vector<vector<int> > subsets;
+
     return subsets;
 }
+
 void tsp(vector<City> cities, int start, int numCities)
 {
-    for (int i = 2; i < numCities; i++) {
-        for (vector<int> set : generateSubsets()) {
+    vector<int> cityNums;
+    // convert cities back to integer array
+    for (int i = 1; i < numCities; i++) {
+        cityNums.push_back(i);
+    }
+    for (int i = 1; i < numCities; i++) {
+        for (vector<int> set : generateSubsets(cityNums, i)) {
             for (int k : set) {
                 vector<int> kSet;
                 kSet.push_back(k);
@@ -82,6 +90,10 @@ int main(int argc, char** argv)
         exit(1);
     }
     vector<City> cities = readCities(argv[1]);
+    if (cities.size() == 0) {
+        printf("Please use a dataset file that is not empty\n");
+        exit(2);
+    }
 
     for (City city : cities) {
         cout << "X is " << city.x << " Y is " << city.y << " for city with id " << city.id << endl;
