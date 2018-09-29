@@ -5,10 +5,13 @@
 #include <math.h>
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <iterator>
 
 #include "include/assignment1.h"
 
 using namespace std;
+double** distances;
 
 double distance(City c1, City c2)
 {
@@ -49,20 +52,27 @@ double** computeDistanceMatrix(vector<City> cities)
     }
     return distances;
 }
-
-void tsp(double** distances, int start, int numCities)
+vector<vector<int> > generateSubsets()
 {
-    int secondToLastCity = -1;
-    for (int i = 0; i < numCities; i++) {
-        if (i == start)
-            continue;
-
-        if (secondToLastCity == -1)
-            secondToLastCity = i;
-        if (distances[i][start] < distances[secondToLastCity][start])
-            secondToLastCity = i;
+    vector<vector<int> > subsets;
+    return subsets;
+}
+void tsp(vector<City> cities, int start, int numCities)
+{
+    for (int i = 2; i < numCities; i++) {
+        for (vector<int> set : generateSubsets()) {
+            for (int k : set) {
+                vector<int> kSet;
+                kSet.push_back(k);
+                vector<int> diff;
+                set_difference(set.begin(), set.end(), kSet.begin(), kSet.end(), inserter(diff, diff.begin()));
+                for (int num : diff) {
+                    printf("%i ", num);
+                }
+                printf("\n");
+            }
+        }
     }
-    printf("City %i is the second to last city\n", secondToLastCity);
 }
 
 int main(int argc, char** argv)
@@ -77,8 +87,10 @@ int main(int argc, char** argv)
         cout << "X is " << city.x << " Y is " << city.y << " for city with id " << city.id << endl;
     }
 
-    double** distances = computeDistanceMatrix(cities);
+    distances = computeDistanceMatrix(cities);
     printMatrix(distances, cities.size(), cities.size());
 
-    tsp(distances, 0, cities.size());
+    int* cityIds = (int*)malloc(cities.size() * sizeof(int));
+
+    tsp(cities, 0, cities.size());
 }
