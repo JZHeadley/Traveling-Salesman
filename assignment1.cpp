@@ -53,11 +53,28 @@ double** computeDistanceMatrix(vector<City> cities)
     return distances;
 }
 
-vector<vector<int> > generateSubsets(vector<int> cities, int size)
+vector<vector<int> > generateSubsets(int r, int n)
 {
-    vector<vector<int> > subsets;
+    int count = 0;
+    vector<vector<int> > container;
+    vector<int> row;
+    vector<bool> v((unsigned long)n);
+    fill(v.begin(), v.begin() + r, true);
 
-    return subsets;
+    do {
+        for (int i = 0; i < n; ++i) {
+            if (v[i]) {
+                count++;
+                row.push_back(i + 1);
+                if (count == r) {
+                    container.push_back(row);
+                    row.clear();
+                    count = 0;
+                }
+            }
+        }
+    } while (prev_permutation(v.begin(), v.end()));
+    return container;
 }
 
 void tsp(vector<City> cities, int start, int numCities)
@@ -68,7 +85,7 @@ void tsp(vector<City> cities, int start, int numCities)
         cityNums.push_back(i);
     }
     for (int i = 1; i < numCities; i++) {
-        for (vector<int> set : generateSubsets(cityNums, i)) {
+        for (vector<int> set : generateSubsets(cityNums.size(), i)) {
             for (int k : set) {
                 vector<int> kSet;
                 kSet.push_back(k);
