@@ -124,8 +124,8 @@ void tsp(vector<City> cities, int start, int numCities)
     //we're good so far...
     double currentCost = 0;
 
-    for (int i = 2; i < numCities; i++) { // cardinality of the set
-        vector<vector<int> > subsets = generateSubsets(i, cityNums.size() - 1);
+    for (int i = 2; i < numCities; i++) { // iterate through all cardinalities of subsets
+        vector<vector<int> > subsets = generateSubsets(i, cityNums.size());
         for (vector<int> set : subsets) {
             for (int k : set) {
                 vector<int> kSet{ k };
@@ -136,13 +136,6 @@ void tsp(vector<City> cities, int start, int numCities)
                 int bestM;
                 // we initialized 2 levels earlier so this for loop will always be able to run.
                 for (int m : diff) {
-                    printf("m is %llu\n", m);
-                    printf("k is %llu\n", k);
-                    if (m == k) {
-
-                        printf("m was equal to k\n");
-                        continue;
-                    }
                     vector<int> mSet{ m }; // need to generate the key for k-1
                     vector<int> noMoreM;   // get rid of m because thats where we're going
                     set_difference(diff.begin(), diff.end(), mSet.begin(), mSet.end(), inserter(noMoreM, noMoreM.begin()));
@@ -151,12 +144,12 @@ void tsp(vector<City> cities, int start, int numCities)
                     currentCost = solutionsMap[key].cost + distances[m][k];
                     if (currentCost < minCost) {
                         minCost = currentCost;
-                        vector<int> path = solutionsMap[key].path;
-                        minPath = path;
+                        minPath = solutionsMap[key].path;
                         bestM = m;
                     }
                 }
                 genKey(diff, k, key);
+
                 PathCost pathCost;
                 pathCost.cost = minCost;
                 minPath.push_back(bestM);
@@ -180,11 +173,6 @@ void tsp(vector<City> cities, int start, int numCities)
             vector<int> path = solutionsMap[key].path;
             minPath = path;
             bestM = m;
-            printf("path cost is %f with key %i and path: ", minCost, key);
-            for (int b = 0; b < minPath.size(); b++) {
-                printf("%i -> ", minPath[b]);
-            }
-            printf("\n");
         }
     }
 
@@ -193,7 +181,17 @@ void tsp(vector<City> cities, int start, int numCities)
     bestPath = minPath;
     bestCost = minCost;
 }
+void printPath(vector<int> path)
+{
 
+    printf("path is: ");
+    for (int i = 0; i < path.size() - 1; i++) {
+        printf("%i -> ", path[i]);
+    }
+    printf("%i", path[path.size() - 1]);
+
+    printf("\n");
+}
 int main(int argc, char** argv)
 {
     if (argc != 2) {
@@ -211,15 +209,12 @@ int main(int argc, char** argv)
     }
 
     distances = computeDistanceMatrix(cities);
-    printMatrix(distances, cities.size(), cities.size());
+    //printMatrix(distances, cities.size(), cities.size());
 
     int* cityIds = (int*)malloc(cities.size() * sizeof(int));
 
     tsp(cities, 0, cities.size());
 
-    printf("Best path is: ");
-    for (int i = 0; i < bestPath.size(); i++) {
-        printf("%i -> ", bestPath[i]);
-    }
-    printf("\n");
+    printPath(bestPath);
+    printf("cost was %f\n", bestCost);
 }
