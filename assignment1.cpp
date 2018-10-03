@@ -212,9 +212,17 @@ int main(int argc, char** argv)
     //printMatrix(distances, cities.size(), cities.size());
 
     int* cityIds = (int*)malloc(cities.size() * sizeof(int));
+    struct timespec start, end;
+
+    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
     tsp(cities, 0, cities.size());
 
     printPath(bestPath);
     printf("cost was %f\n", bestCost);
+
+    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+    uint64_t diff = (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec) / 1e6;
+
+    printf("TSP ran in %llu ms for %i cities\n", (long long unsigned int)diff, cities.size());
 }
