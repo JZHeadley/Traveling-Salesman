@@ -7,11 +7,22 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
+#include <map>
+#include <string.h>
+#include <limits.h>
 
 #include "include/assignment1.h"
 
 using namespace std;
+
+typedef struct {
+    double cost;
+    vector<int> path;
+} PathCost;
+
 double** distances;
+map<long long int, PathCost> solutionsMap;
+vector<int> bestPath;
 
 double distance(City c1, City c2)
 {
@@ -52,21 +63,29 @@ double** computeDistanceMatrix(vector<City> cities)
     }
     return distances;
 }
-
-vector<vector<int> > generateSubsets(int r, int n)
+long long genKey(vector<int> set, int z)
+{
+    long long key = 0;
+    key |= z;
+    for (int j : set) {
+        key != 1 << j;
+    }
+    return key;
+}
+vector<vector<int> > generateSubsets(int size, int n)
 {
     int count = 0;
     vector<vector<int> > container;
     vector<int> row;
     vector<bool> v((unsigned long)n);
-    fill(v.begin(), v.begin() + r, true);
+    fill(v.begin(), v.begin() + size, true);
 
     do {
         for (int i = 0; i < n; ++i) {
             if (v[i]) {
                 count++;
                 row.push_back(i + 1);
-                if (count == r) {
+                if (count == size) {
                     container.push_back(row);
                     row.clear();
                     count = 0;
@@ -84,16 +103,50 @@ void tsp(vector<City> cities, int start, int numCities)
     for (int i = 1; i < numCities; i++) {
         cityNums.push_back(i);
     }
+
+    // initalize first 2 levels of the lookup table
     for (int i = 1; i < numCities; i++) {
-        for (vector<int> set : generateSubsets(cityNums.size(), i)) {
+        long long key = 0x00000; // pow(2^8);
+        key |= 1 << i;
+        for (int j = 1; j < numCities; j++) {
+            if (i == j)
+                continue;
+            key |= j;
+            PathCost pathCost;
+            vector<int> path;
+            path.push_back(i);
+            path.push_back(j);
+            pathCost.path = path;
+            pathCost.cost = distances[i][j] + distances[0][i];
+            solutionsMap.insert(pair<long long, PathCost>(key, pathCost));
+        }
+    }
+    long long key = 0;
+    double currentCost = 0;
+
+    for (int i = 2; i < numCities; i++) { // cardinality of the set
+        vector<vector<int> > subsets = generateSubsets(i, cityNums.size() - 1);
+        for (vector<int> set : subsets) {
             for (int k : set) {
-                vector<int> kSet;
-                kSet.push_back(k);
+                vector<int> kSet{ k };
                 vector<int> diff;
                 set_difference(set.begin(), set.end(), kSet.begin(), kSet.end(), inserter(diff, diff.begin()));
-                for (int num : diff) {
-                    printf("%i ", num);
+                int minCost = INT_MAX;
+                // we initialized 2 levels earlier so this for loop will always be able to run.
+                for (int m : diff) {
+                    vector<int> mSet{ m }; // need to generate the key for k-1
+                    vector<int> noMoreM;   // get rid of m because thats where we're going
+                    set_difference(diff.begin(), diff.end(), mSet.begin(), mSet.end(), inserter(noMoreM, noMoreM.begin()));
+
+                    key = genKey(noMoreM, m);
+                    currentCost = solutionsMap[key].cost + distances[m][k];
+
+                    if (currentCost < minCost) {
+                        minCost = currentCost;
+                    }
+                    printf("%i ", m);
                 }
+                key = genKey(diff, k);
                 printf("\n");
             }
         }
@@ -122,4 +175,9 @@ int main(int argc, char** argv)
     int* cityIds = (int*)malloc(cities.size() * sizeof(int));
 
     tsp(cities, 0, cities.size());
+
+    printf("\n");
+    for (int i = 0; i < bestPath.size(); i++) {
+        printf("%i ", bestPath[i]);
+    }
 }
