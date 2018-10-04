@@ -125,6 +125,7 @@ void tsp(vector<City> cities, int start, int numCities)
     double currentCost = 0;
 
     for (int i = 2; i < numCities; i++) { // iterate through all cardinalities of subsets
+        printf("working on subsets of size %i\n", i);
         vector<vector<int> > subsets = generateSubsets(i, cityNums.size());
         for (vector<int> set : subsets) {
             for (int k : set) {
