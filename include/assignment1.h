@@ -31,6 +31,22 @@ void printMatrix(double** matrix, int r, int c)
     }
 }
 
+void printMatrixArray(vector<City> matrix, int rowWidth, int numElements)
+{
+    int counter = 0;
+    for (int i = 0; i < (numElements / (float)rowWidth); i++)
+    {
+        printf("[ ");
+        for (int j = 0; j < min((numElements - (i * rowWidth)), rowWidth); j++)
+        {
+            City city = matrix[counter];
+            printf("(%f, %f) ", city.x, city.y);
+            counter++;
+        }
+        printf("]\n");
+    }
+}
+
 double distance(City c1, City c2)
 {
     return sqrt(pow(c1.x - c2.x, 2) + pow(c1.y - c2.y, 2));
@@ -51,7 +67,7 @@ vector<City> readCities(char* filePath)
         cities.push_back(city);
         id++;
     }
-    printf("We just read in %i cities\n", cities.size());
+    printf("We just read in %lu cities\n", cities.size());
     return cities;
 }
 
@@ -90,12 +106,12 @@ vector<vector<int>> generateSubsets(int size, int n)
 
 double** computeDistanceMatrix(vector<City> cities)
 {
-    double** distances = (double**)malloc(cities.size() * sizeof(double*));
-    for (int i = 0; i < cities.size(); i++)
-        distances[i] = (double*)malloc(cities.size() * sizeof(double));
+    double** distances = (double**)malloc((int)cities.size() * sizeof(double*));
+    for (int i = 0; i < (int)cities.size(); i++)
+        distances[i] = (double*)malloc((int)cities.size() * sizeof(double));
 
-    for (int i = 0; i < cities.size(); i++) {
-        for (int j = 0; j < cities.size(); j++) {
+    for (int i = 0; i < (int)cities.size(); i++) {
+        for (int j = 0; j < (int)cities.size(); j++) {
             City city1 = cities[i];
             City city2 = cities[j];
             distances[i][j] = sqrt(pow(city1.x - city2.x, 2) + pow(city1.y - city2.y, 2));
@@ -108,10 +124,10 @@ void printPath(vector<int> path)
 {
 
     printf("path is: ");
-    for (int i = 0; i < path.size() - 1; i++) {
+    for (int i = 0; i < (int)path.size() - 1; i++) {
         printf("%i -> ", path[i]);
     }
-    printf("%i", path[path.size() - 1]);
+    printf("%i", path[(int)path.size() - 1]);
 
     printf("\n");
 }

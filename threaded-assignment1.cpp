@@ -151,20 +151,14 @@ vector<City> breakAndSort(vector<City> cities)
     return newCities;
 }
 
-void printMatrixArray(vector<City> matrix, int rowWidth, int numElements)
+vector<vector<vector<City>>> breakIntoBlocks(vector<City> cities, int blockWidth)
 {
-    int counter = 0;
-    for (int i = 0; i < (numElements / (float)rowWidth); i++)
+    vector<vector<vector<City>>> blocks{{{}}};
+    for (int i = 0; i < (cities.size() / ((float)(blockWidth* blockWidth))); i++)
     {
-        printf("[");
-        for (int j = 0; j < min((numElements - (i * rowWidth)), rowWidth); j++)
-        {
-            City city = matrix[counter];
-            printf("(%f, %f) ", city.x, city.y);
-            counter++;
-        }
-        printf("]\n");
     }
+
+    return blocks;
 }
 
 int main(int argc, char **argv)
@@ -185,16 +179,16 @@ int main(int argc, char **argv)
 
     // ceil(cities.size() / (BLOCK_SIZE * BLOCK_SIZE));
 
-    for (City city : cities)
-    {
-        // cout << "X is " << city.x << " Y is " << city.y << " for city with id " << city.id << endl;
-    }
+    // for (City city : cities)
+    // {
+    //     cout << "X is " << city.x << " Y is " << city.y << " for city with id " << city.id << endl;
+    // }
 
     printMatrixArray(cities, BLOCK_SIZE, cities.size());
     //distances = computeDistanceMatrix(cities);
     //printMatrix(distances, cities.size(), cities.size());
 
-    int *cityIds = (int *)malloc(cities.size() * sizeof(int));
+    // int *cityIds = (int *)malloc(cities.size() * sizeof(int));
     struct timespec start, end;
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &start);
@@ -207,5 +201,5 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     uint64_t diff = (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec) / 1e6;
 
-    printf("TSP ran in %llu ms for %i cities\n", (long long unsigned int)diff, cities.size());
+    printf("TSP ran in %llu ms for %lu cities\n", (long long unsigned int)diff, cities.size());
 }
