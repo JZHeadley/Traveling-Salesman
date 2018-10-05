@@ -2,6 +2,7 @@
 #include <map>
 #include <string.h>
 #include <limits.h>
+#include <algorithm>
 
 #include "include/assignment1.h"
 #define BLOCK_SIZE 4
@@ -132,20 +133,38 @@ vector<City> breakAndSort(vector<City> cities)
 {
     vector<City> newCities;
     sort(cities.begin(), cities.end(), sortByX());
-    for (int i = 0; i < (cities.size() / BLOCK_SIZE); i++)
+    int counter = 0;
+    for (int i = 0; i < (cities.size() / (float)BLOCK_SIZE); i++)
     {
         vector<City> tempCities;
-        for (int j = 0; j < BLOCK_SIZE; j++)
+        for (int j = 0; j < min((int)(cities.size() - (i * BLOCK_SIZE)), BLOCK_SIZE); j++)
         {
-            tempCities.push_back(cities[i + j]);
+            tempCities.push_back(cities[(i * BLOCK_SIZE) + j]);
+            counter++;
         }
         sort(tempCities.begin(), tempCities.end(), sortByY());
-        for (int j = 0; j < BLOCK_SIZE; j++)
+        for (int j = 0; j < min((int)(cities.size() - (i * BLOCK_SIZE)), BLOCK_SIZE); j++)
         {
             newCities.push_back(tempCities[j]);
         }
     }
     return newCities;
+}
+
+void printMatrixArray(vector<City> matrix, int rowWidth, int numElements)
+{
+    int counter = 0;
+    for (int i = 0; i < (numElements / (float)rowWidth); i++)
+    {
+        printf("[");
+        for (int j = 0; j < min((numElements - (i * rowWidth)), rowWidth); j++)
+        {
+            City city = matrix[counter];
+            printf("(%f, %f) ", city.x, city.y);
+            counter++;
+        }
+        printf("]\n");
+    }
 }
 
 int main(int argc, char **argv)
@@ -168,9 +187,10 @@ int main(int argc, char **argv)
 
     for (City city : cities)
     {
-        cout << "X is " << city.x << " Y is " << city.y << " for city with id " << city.id << endl;
+        // cout << "X is " << city.x << " Y is " << city.y << " for city with id " << city.id << endl;
     }
 
+    printMatrixArray(cities, BLOCK_SIZE, cities.size());
     //distances = computeDistanceMatrix(cities);
     //printMatrix(distances, cities.size(), cities.size());
 
