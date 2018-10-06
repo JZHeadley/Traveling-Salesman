@@ -13,4 +13,4 @@ clean:
 	rm -f tsp threaded-tsp
 
 run: all
-	./threaded-tsp datasets/16.cities
+	./threaded-tsp datasets/26.cities
