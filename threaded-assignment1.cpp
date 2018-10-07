@@ -262,13 +262,29 @@ void printBlockedCities(vector<vector<City>> cities)
 
 void stitchBlocks(vector<BlockSolution> blockSolutions)
 {
-    double totalCost = 0;
-    vector<City> fullPath;
-    // vector<BlockSolution> blocksLeft =;
-    for (BlockSolution solution : blockSolutions)
+    double totalCost = blockSolutions[0].cost;
+    vector<City> fullPath = blockSolutions[0].path;
+    vector<int> blockPath{blockSolutions[0].blockId};
+    vector<BlockSolution> blocksLeft(blockSolutions.begin() + 1, blockSolutions.end());
+
+    while (blocksLeft.size() > 0)
     {
-        totalCost += solution.cost;
+        int bestBlock;
+        double bestDist = INT_MAX;
+        for (int i = 0; i < (int)blocksLeft.size(); i++)
+        {
+            double curDist = distance(fullPath[fullPath.size()], blocksLeft[i].path[0]);
+            if (curDist < bestDist)
+            {
+                bestDist = curDist;
+                bestBlock = i;
+            }
+        }
+        fullPath.insert(fullPath.end(), blocksLeft[bestBlock].path.begin(), blocksLeft[bestBlock].path.end());
+        totalCost += blocksLeft[bestBlock].cost + bestDist;
+        blocksLeft.erase(blocksLeft.begin() + bestBlock);
     }
+
     printf("The total cost of all the blocks is %.4f\n", totalCost);
 }
 
