@@ -322,7 +322,7 @@ int main(int argc, char *argv[])
     cities = breakAndSort(cities);
     vector<vector<vector<City>>> blockedMatrixCities = breakIntoMatrixBlocks(cities, BLOCK_SIZE);
     vector<vector<City>> blockedCities = breakIntoBlocks(cities, BLOCK_SIZE);
-    printBlockedCities(blockedCities);
+    // printBlockedCities(blockedCities);
 
     // lets do the actual work
     pthread_t *threads = (pthread_t *)malloc(blockedCities.size() * sizeof(pthread_t));
@@ -339,7 +339,6 @@ int main(int argc, char *argv[])
         TSPArgs *args = new TSPArgs;
         args->threadId = threadIds[i];
         args->cities = blockedCities[i];
-        printf("Spawning thread for block %i\n", i);
         int status = pthread_create(&threads[i], NULL, tsp, (void *)args);
     }
 
@@ -351,13 +350,13 @@ int main(int argc, char *argv[])
     pthread_mutex_destroy(&blockMutex);
 
     TSPSolution solution = stitchBlocks(blockSolutions);
-    printf("The final cost is %.2f for this set of %i cities\n", solution.cost, (int)cities.size());
     vector<int> bestPathIds{};
     for (City city : solution.path)
     {
         bestPathIds.push_back(city.id);
     }
-    printPath(bestPathIds);
+    // printPath(bestPathIds);
+    printf("The final cost is %.2f for this set of %i cities\n", solution.cost, (int)cities.size());
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     uint64_t diff = (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec) / 1e6;
