@@ -142,7 +142,7 @@ void *tsp(void *args)
         for (vector<int> set : subsets)
         {
             int count = 0;
-            for (int k : set)
+            for (int k : set) // for every element of the set lets figure out the ordering
             {
                 vector<int> kSet{k};
                 vector<int> diff;
@@ -259,8 +259,13 @@ void printBlockedCities(vector<vector<City>> cities)
         printf("\n\n");
     }
 }
+typedef struct
+{
+    double cost;
+    vector<City> path;
+} TSPSolution;
 
-void stitchBlocks(vector<BlockSolution> blockSolutions)
+TSPSolution stitchBlocks(vector<BlockSolution> blockSolutions)
 {
     double totalCost = blockSolutions[0].cost;
     vector<City> fullPath = blockSolutions[0].path;
@@ -284,8 +289,18 @@ void stitchBlocks(vector<BlockSolution> blockSolutions)
         totalCost += blocksLeft[bestBlock].cost + bestDist;
         blocksLeft.erase(blocksLeft.begin() + bestBlock);
     }
+    
+    // lets add the path back home
+    double tripHome = distance(fullPath[0],fullPath[fullPath.size()]);
+    totalCost += tripHome;
+    printf("cost of the final trip back home is %.2f\n",tripHome);
+    fullPath.push_back(fullPath[0]);
 
-    printf("The total cost of all the blocks is %.4f\n", totalCost);
+    // returning the final solution
+    TSPSolution solution;
+    solution.cost = totalCost;
+    solution.path = fullPath;
+    return solution;
 }
 
 int main(int argc, char *argv[])
@@ -308,13 +323,6 @@ int main(int argc, char *argv[])
     vector<vector<vector<City>>> blockedMatrixCities = breakIntoMatrixBlocks(cities, BLOCK_SIZE);
     vector<vector<City>> blockedCities = breakIntoBlocks(cities, BLOCK_SIZE);
     printBlockedCities(blockedCities);
-    // printBlocked(blockedMatrixCities);
-    // ceil(cities.size() / (BLOCK_SIZE * BLOCK_SIZE));
-
-    // for (City city : cities)
-    // {
-    //     cout << "X is " << city.x << " Y is " << city.y << " for city with id " << city.id << endl;
-    // }
 
     // lets do the actual work
     pthread_t *threads = (pthread_t *)malloc(blockedCities.size() * sizeof(pthread_t));
@@ -340,8 +348,16 @@ int main(int argc, char *argv[])
         pthread_join(threads[i], NULL);
     }
 
-    stitchBlocks(blockSolutions);
     pthread_mutex_destroy(&blockMutex);
+
+    TSPSolution solution = stitchBlocks(blockSolutions);
+    printf("The final cost is %.2f for this set of %i cities\n", solution.cost, (int)cities.size());
+    vector<int> bestPathIds{};
+    for (City city : solution.path)
+    {
+        bestPathIds.push_back(city.id);
+    }
+    printPath(bestPathIds);
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     uint64_t diff = (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec) / 1e6;
