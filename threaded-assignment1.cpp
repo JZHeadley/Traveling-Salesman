@@ -8,6 +8,12 @@
 #include "include/assignment1.h"
 int BLOCK_SIZE = 4;
 
+typedef struct {
+    int blockId;
+    vector<City> path;
+    double cost;
+} blockPathCost;
+
 typedef struct
 {
     int threadId;
@@ -71,7 +77,7 @@ vector<vector<vector<City>>> breakIntoMatrixBlocks(vector<City> cities, int bloc
 vector<City> convPathToCityPath(vector<City> cities, vector<int> positions)
 {
     vector<City> truePath{};
-    for (int cityNum : positions)
+      for (int cityNum : positions)
     {
         truePath.push_back(cities[cityNum]);
     }
@@ -164,14 +170,7 @@ void *tsp(void *args)
                 {
                     minPath.push_back(k);
                     printf("minCost is %f\n", minCost);
-                    // printPath(minPath);
-                    vector<City> truePath = convPathToCityPath(cities, cityNums);
-                    vector<int> trueNumPath{};
-                    for(City city: truePath){
-                        trueNumPath.push_back(city.id);
-                    }
-                    printPath(minPath);
-                    printPath(trueNumPath);
+                    vector<City> truePath = convPathToCityPath(cities, minPath);
                     break;
                 }
                 pathCost.path = minPath;
@@ -179,6 +178,7 @@ void *tsp(void *args)
             }
         }
     }
+    free(distances);
     // for some reason minCost isn't what it should be here so I'm going to do my final stuff
     // above where it actually is correct
     // printf("cost was %f\n", minCost);
@@ -235,7 +235,7 @@ void printBlockedCities(vector<vector<City>> cities)
         printf("Block %i\n [", i);
         for (int j = 0; j < (int)cities[i].size(); j++)
         {
-            printf("%i:(%.2f, %.2f) ", cities[i][j].id,cities[i][j].x, cities[i][j].y);
+            printf("%i:(%.2f, %.2f) ", cities[i][j].id, cities[i][j].x, cities[i][j].y);
         }
         printf("\n\n");
     }
