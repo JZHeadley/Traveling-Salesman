@@ -8,17 +8,20 @@
 #include "include/assignment1.h"
 int BLOCK_SIZE = 4;
 
-typedef struct {
+typedef struct
+{
     int blockId;
     vector<City> path;
     double cost;
-} blockPathCost;
+} BlockSolution;
 
 typedef struct
 {
     int threadId;
     vector<City> cities;
 } TSPArgs;
+
+vector<BlockSolution> blockSolutions{};
 
 struct sortByX
 {
@@ -77,7 +80,7 @@ vector<vector<vector<City>>> breakIntoMatrixBlocks(vector<City> cities, int bloc
 vector<City> convPathToCityPath(vector<City> cities, vector<int> positions)
 {
     vector<City> truePath{};
-      for (int cityNum : positions)
+    for (int cityNum : positions)
     {
         truePath.push_back(cities[cityNum]);
     }
@@ -168,9 +171,18 @@ void *tsp(void *args)
                 minPath.push_back(bestM);
                 if (i == numCities - 1 && count == set.size() - 1)
                 {
+                    // we've finished and found our best path if we get into here.
+                    // doing all the finishing logic here because for some reason it doesn't have it
+                    // down below outside of all these for loops and I'm not sure why.
+
                     minPath.push_back(k);
-                    printf("minCost is %f\n", minCost);
+                    // printf("minCost is %f\n", minCost);
                     vector<City> truePath = convPathToCityPath(cities, minPath);
+                    BlockSolution blockSolution;
+                    blockSolution.path = truePath;
+                    blockSolution.cost = minCost;
+                    blockSolution.blockId = threadId;
+                    blockSolutions.push_back(blockSolution);
                     break;
                 }
                 pathCost.path = minPath;
@@ -241,6 +253,17 @@ void printBlockedCities(vector<vector<City>> cities)
     }
 }
 
+void stitchBlocks(vector<BlockSolution> blockSolutions)
+{
+    double totalCost = 0;
+    vector<City> fullPath;
+    // vector<BlockSolution> blocksLeft =;
+    for(BlockSolution solution: blockSolutions) {
+        totalCost+=solution.cost;
+    }
+    printf("The total cost of all the blocks is %.4f\n",totalCost);
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 3)
@@ -292,13 +315,7 @@ int main(int argc, char *argv[])
         pthread_join(threads[i], NULL);
     }
 
-    // printMatrixArray(cities, BLOCK_SIZE, cities.size());
-    //distances = computeDistanceMatrix(cities);
-    //printMatrix(distances, cities.size(), cities.size());
-
-    // int *cityIds = (int *)malloc(cities.size() * sizeof(int));
-
-    //tsp(cities, cities.size());
+    stitchBlocks(blockSolutions);
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     uint64_t diff = (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec) / 1e6;
