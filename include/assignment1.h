@@ -43,7 +43,7 @@ void printBlocked(vector<vector<vector<City>>> blocks)
             printf("\t[");
             for (int k = 0; k < (int)blocks[i][j].size(); k++)
             {
-                printf("(%.2f, %.2f) ", blocks[i][j][k].x, blocks[i][j][k].y);
+                printf("%i:(%.2f, %.2f) ", blocks[i][j][k].id,blocks[i][j][k].x, blocks[i][j][k].y);
             }
             printf("]\n");
         }

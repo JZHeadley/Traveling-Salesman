@@ -68,6 +68,16 @@ vector<vector<vector<City>>> breakIntoMatrixBlocks(vector<City> cities, int bloc
     return blocks;
 }
 
+vector<City> convPathToCityPath(vector<City> cities, vector<int> positions)
+{
+    vector<City> truePath{};
+    for (int cityNum : positions)
+    {
+        truePath.push_back(cities[cityNum]);
+    }
+    return truePath;
+}
+
 void *tsp(void *args)
 {
     TSPArgs *tspArgs = (TSPArgs *)args;
@@ -76,17 +86,15 @@ void *tsp(void *args)
 
     double **distances = computeDistanceMatrix(cities);
     map<long long int, PathCost> solutionsMap;
-    vector<int> bestPath;
-    double bestCost;
-    vector<int> minPath;
-    double minCost;
+    vector<int> minPath{};
+    double minCost = INT_MAX;
 
     int numCities = (int)cities.size();
     if (numCities == 0)
     {
         vector<int> simple{0};
-        bestPath = simple;
-        bestCost = 0;
+        minPath = simple;
+        minCost = 0;
         return (void *)NULL;
     }
     long long key = 0x00000;
@@ -118,7 +126,7 @@ void *tsp(void *args)
 
     for (int i = 2; i < numCities; i++)
     { // iterate through all cardinalities of subsets
-        printf("working on subsets of size %i\n", i);
+        // printf("working on subsets of size %i\n", i);
         vector<vector<int>> subsets = generateSubsets(i, cityNums.size());
         for (vector<int> set : subsets)
         {
@@ -155,18 +163,26 @@ void *tsp(void *args)
                 if (i == numCities - 1 && count == set.size() - 1)
                 {
                     minPath.push_back(k);
-                    printf("minCost is %f\n",minCost);
+                    printf("minCost is %f\n", minCost);
+                    // printPath(minPath);
+                    vector<City> truePath = convPathToCityPath(cities, cityNums);
+                    vector<int> trueNumPath{};
+                    for(City city: truePath){
+                        trueNumPath.push_back(city.id);
+                    }
                     printPath(minPath);
+                    printPath(trueNumPath);
+                    break;
                 }
                 pathCost.path = minPath;
                 solutionsMap.insert(pair<long long, PathCost>(key, pathCost));
             }
         }
     }
-
-    printf("cost was %f\n", minCost);
-
-    // printPath(bestPath);
+    // for some reason minCost isn't what it should be here so I'm going to do my final stuff
+    // above where it actually is correct
+    // printf("cost was %f\n", minCost);
+    // printPath(minPath);
 }
 
 vector<City> breakAndSort(vector<City> cities)
@@ -219,7 +235,7 @@ void printBlockedCities(vector<vector<City>> cities)
         printf("Block %i\n [", i);
         for (int j = 0; j < (int)cities[i].size(); j++)
         {
-            printf("(%.2f, %.2f) ", cities[i][j].x, cities[i][j].y);
+            printf("%i:(%.2f, %.2f) ", cities[i][j].id,cities[i][j].x, cities[i][j].y);
         }
         printf("\n\n");
     }
