@@ -12,6 +12,12 @@ map<long long int, PathCost> solutionsMap;
 vector<int> bestPath;
 double bestCost;
 
+typedef struct
+{
+    int threadId;
+    vector<City> cities;
+} TSPArgs;
+
 struct sortByX
 {
     inline bool operator()(const City city1, const City &city2)
@@ -19,6 +25,7 @@ struct sortByX
         return (city1.x < city2.x);
     }
 };
+
 struct sortByY
 {
     inline bool operator()(const City city1, const City &city2)
@@ -27,14 +34,16 @@ struct sortByY
     }
 };
 
-void tsp(vector<City> cities, int start, int numCities)
+void *tsp(void *args)
 {
+    vector<City> cities;
+    int numCities;
     if (cities.size() == 0)
     {
         vector<int> simple{0};
         bestPath = simple;
         bestCost = 0;
-        return;
+        return (void *)NULL;
     }
     long long key = 0x00000;
     vector<int> cityNums;
@@ -151,7 +160,7 @@ vector<City> breakAndSort(vector<City> cities)
     return newCities;
 }
 
-vector<vector<vector<City>>> breakIntoBlocks(vector<City> cities, int blockWidth)
+vector<vector<vector<City>>> breakIntoMatrixBlocks(vector<City> cities, int blockWidth)
 {
     // lets just make a vector out of blockWidth x blockWidth matrices of cities
     // to make life easier
@@ -188,26 +197,39 @@ vector<vector<vector<City>>> breakIntoBlocks(vector<City> cities, int blockWidth
 
     return blocks;
 }
-
-void printBlocked(vector<vector<vector<City>>> blocks)
+vector<vector<City>> breakIntoBlocks(vector<City> cities, int blockWidth)
 {
-    for (int i = 0; i < (int)blocks.size(); i++)
+    vector<vector<City>> blocks{};
+    int numElements = (int)cities.size();
+    int count = 0;
+    for (int i = 0; i < (int)cities.size() / ((float)(blockWidth * blockWidth)); i++)
     {
-        // printf("We're in block %i\n", i);
-        printf("Block %i {\n",i);
-        for (int j = 0; j < (int)blocks[i].size(); j++)
+        vector<City> block{};
+        for (int j = 0; j < blockWidth * blockWidth; j++)
         {
-            // printf("In row %i of block %i we have\n", j, i);
-            printf("\t[");
-            for (int k = 0; k < (int)blocks[i][j].size(); k++)
-            {
-                printf("(%.2f, %.2f) ", blocks[i][j][k].x,blocks[i][j][k].y);
-            }
-            printf("]\n");
+            if (count == numElements)
+                break;
+            block.push_back(cities[i * (blockWidth * blockWidth) + j]);
+            count++;
         }
-        printf("}\n\n");
+        blocks.push_back(block);
+    }
+    return blocks;
+}
+
+void printBlockedCities(vector<vector<City>> cities)
+{
+    for (int i = 0; i < (int)cities.size(); i++)
+    {
+        printf("Block %i\n [", i);
+        for (int j = 0; j < (int)cities[i].size(); j++)
+        {
+            printf("(%.2f, %.2f) ", cities[i][j].x, cities[i][j].y);
+        }
+        printf("\n\n");
     }
 }
+
 int main(int argc, char *argv[])
 {
     if (argc != 2)
@@ -223,14 +245,37 @@ int main(int argc, char *argv[])
     }
 
     cities = breakAndSort(cities);
-    vector<vector<vector<City>>> blockedCities = breakIntoBlocks(cities, BLOCK_SIZE);
+    vector<vector<vector<City>>> blockedMatrixCities = breakIntoMatrixBlocks(cities, BLOCK_SIZE);
+    vector<vector<City>> blockedCities = breakIntoBlocks(cities, BLOCK_SIZE);
+    // printBlockedCities(blockedCities);
+    // printBlocked(blockedMatrixCities);
     // ceil(cities.size() / (BLOCK_SIZE * BLOCK_SIZE));
 
     // for (City city : cities)
     // {
     //     cout << "X is " << city.x << " Y is " << city.y << " for city with id " << city.id << endl;
     // }
-    printBlocked(blockedCities);
+
+    // lets do the actual work
+    pthread_t *threads = (pthread_t *)malloc(blockedCities.size() * sizeof(pthread_t));
+    int *threadIds = (int *)malloc(blockedCities.size() * sizeof(int));
+
+    for (int i = 0; i < (int)blockedCities.size(); i++)
+        threadIds[i] = i;
+
+    // for (int i = 0; i < blockedCities.size(); i++)
+    // {
+    //     TSPArgs *args = new TSPArgs;
+    //     args->threadId = threadIds[i];
+    //     args->cities = blockedCities[i];
+    //     int status = pthread_create(&threads[i], NULL, tsp, (void *)args);
+    // }
+
+    // for (int i = 0; i < blockedCities.size(); i++)
+    // {
+    //     pthread_join(threads[i], NULL);
+    // }
+
     // printMatrixArray(cities, BLOCK_SIZE, cities.size());
     //distances = computeDistanceMatrix(cities);
     //printMatrix(distances, cities.size(), cities.size());
@@ -240,7 +285,7 @@ int main(int argc, char *argv[])
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
-    //tsp(cities, 0, cities.size());
+    //tsp(cities, cities.size());
 
     // printPath(bestPath);
     printf("cost was %f\n", bestCost);
@@ -248,5 +293,5 @@ int main(int argc, char *argv[])
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     uint64_t diff = (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec) / 1e6;
 
-    printf("TSP ran in %llu ms for %lu cities\n", (long long unsigned int)diff, cities.size());
+    printf("TSP ran in %llu ms for %lu cities\n", (long long unsigned int)diff,(int) cities.size());
 }

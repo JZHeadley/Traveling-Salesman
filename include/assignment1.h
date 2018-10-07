@@ -31,6 +31,26 @@ void printMatrix(double** matrix, int r, int c)
     }
 }
 
+void printBlocked(vector<vector<vector<City>>> blocks)
+{
+    for (int i = 0; i < (int)blocks.size(); i++)
+    {
+        // printf("We're in block %i\n", i);
+        printf("Block %i {\n", i);
+        for (int j = 0; j < (int)blocks[i].size(); j++)
+        {
+            // printf("In row %i of block %i we have\n", j, i);
+            printf("\t[");
+            for (int k = 0; k < (int)blocks[i][j].size(); k++)
+            {
+                printf("(%.2f, %.2f) ", blocks[i][j][k].x, blocks[i][j][k].y);
+            }
+            printf("]\n");
+        }
+        printf("}\n\n");
+    }
+}
+
 void printMatrixArray(vector<City> matrix, int rowWidth, int numElements)
 {
     int counter = 0;
