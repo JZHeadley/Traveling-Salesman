@@ -4,9 +4,11 @@
 #include <limits.h>
 #include <algorithm>
 #include <pthread.h>
+#include <mutex>
 
 #include "include/assignment1.h"
 int BLOCK_SIZE = 4;
+pthread_mutex_t blockMutex = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct
 {
@@ -182,7 +184,12 @@ void *tsp(void *args)
                     blockSolution.path = truePath;
                     blockSolution.cost = minCost;
                     blockSolution.blockId = threadId;
+
+                    pthread_mutex_lock(&blockMutex);
+
                     blockSolutions.push_back(blockSolution);
+                    pthread_mutex_unlock(&blockMutex);
+
                     break;
                 }
                 pathCost.path = minPath;
@@ -258,10 +265,11 @@ void stitchBlocks(vector<BlockSolution> blockSolutions)
     double totalCost = 0;
     vector<City> fullPath;
     // vector<BlockSolution> blocksLeft =;
-    for(BlockSolution solution: blockSolutions) {
-        totalCost+=solution.cost;
+    for (BlockSolution solution : blockSolutions)
+    {
+        totalCost += solution.cost;
     }
-    printf("The total cost of all the blocks is %.4f\n",totalCost);
+    printf("The total cost of all the blocks is %.4f\n", totalCost);
 }
 
 int main(int argc, char *argv[])
@@ -278,6 +286,7 @@ int main(int argc, char *argv[])
         printf("Please use a dataset file that is not empty\n");
         exit(2);
     }
+    pthread_mutex_init(&blockMutex, NULL);
 
     cities = breakAndSort(cities);
     vector<vector<vector<City>>> blockedMatrixCities = breakIntoMatrixBlocks(cities, BLOCK_SIZE);
@@ -316,6 +325,7 @@ int main(int argc, char *argv[])
     }
 
     stitchBlocks(blockSolutions);
+    pthread_mutex_destroy(&blockMutex);
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     uint64_t diff = (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec) / 1e6;
