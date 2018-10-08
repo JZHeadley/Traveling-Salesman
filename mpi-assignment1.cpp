@@ -8,6 +8,7 @@
 #include "include/assignment1.h"
 #define BLOCK_NUM_TAG 999
 #define NUM_BLOCKS_TAG 988
+#define BLOCK_CITIES_TAG 666
 int BLOCK_SIZE = 4;
 vector<BlockSolution> blockSolutions{};
 
@@ -246,6 +247,17 @@ int main(int argc, char *argv[])
     }
 
     MPI_Init(&argc, &argv);
+    const int numItems = 3;
+    int blockLengths[3] = {1, 1, 1};
+    MPI_Datatype types[3] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE};
+    MPI_Datatype mpi_city_type;
+    MPI_Aint offsets[3];
+    offsets[0] = offsetof(City, id);
+    offsets[1] = offsetof(City, x);
+    offsets[2] = offsetof(City, y);
+
+    MPI_Type_create_struct(numItems, blockLengths, offsets, types, &mpi_city_type);
+    MPI_Type_commit(&mpi_city_type);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &procNum);
     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
@@ -264,6 +276,7 @@ int main(int argc, char *argv[])
         cities = breakAndSort(cities);
         vector<vector<City>> blockedCities = breakIntoBlocks(cities, BLOCK_SIZE);
         printBlockedCities(blockedCities);
+
         int numBlocks = (int)blockedCities.size();
         for (int i = 1; i < numProcs; i++)
         {
@@ -276,6 +289,9 @@ int main(int argc, char *argv[])
                 printf("sending block %i to process %i\n", i, i + 1);
                 int size = blockedCities[i].size();
                 MPI_Send(&size, 1, MPI_INT, i + 1, BLOCK_NUM_TAG, MPI_COMM_WORLD);
+                City *block = (City *)malloc(size * sizeof(City));
+                copy(blockedCities[i].begin(), blockedCities[i].end(), block);
+                MPI_Send(block, size, mpi_city_type, i + 1, BLOCK_CITIES_TAG, MPI_COMM_WORLD);
             }
         }
         else // numBlocks >= numProcs - 1
@@ -289,18 +305,24 @@ int main(int argc, char *argv[])
         int numBlocks;
         MPI_Status status;
         MPI_Recv(&numBlocks, 1, MPI_INT, 0, NUM_BLOCKS_TAG, MPI_COMM_WORLD, &status);
-        if (procNum > numBlocks )
+        if (procNum > numBlocks)
         {
             // kill off excess processes if we don't need them since my blocking doesn't split
             // in a way such that we can evenly distribute to all processes
-            printf("No need for process %i\n", procNum);
+            // printf("No need for process %i\n", procNum);
             MPI_Finalize();
             return 0;
         }
-        vector<City> block;
         int length;
         MPI_Recv(&length, 1, MPI_INT, 0, BLOCK_NUM_TAG, MPI_COMM_WORLD, &status);
         printf("The length of the block will be %i\n", length);
+        City *block = (City *)malloc(length * sizeof(City));
+        MPI_Recv(block, length, mpi_city_type, 0, BLOCK_CITIES_TAG, MPI_COMM_WORLD, &status);
+        vector<City> cities;
+        for (int i = 0; i < length; i++)
+        {
+            cities.push_back(block[i]);
+        }
     }
     // lets do the actual work
 
