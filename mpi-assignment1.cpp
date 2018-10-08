@@ -6,9 +6,13 @@
 #include <mpi.h>
 
 #include "include/assignment1.h"
-#define BLOCK_NUM_TAG 999
-#define NUM_BLOCKS_TAG 988
+#define BLOCK_NUM_TAG 6
+#define NUM_BLOCKS_TAG 66
 #define BLOCK_CITIES_TAG 666
+#define NUM_CITIES_TAG 6666
+#define CITIES_RESULT_TAG 66666
+#define COST_RESULT_TAG 7
+
 int BLOCK_SIZE = 4;
 vector<BlockSolution> blockSolutions{};
 
@@ -24,7 +28,7 @@ vector<City> convPathToCityPath(vector<City> cities, vector<int> positions)
     return truePath;
 }
 
-void *tsp(vector<City> cities)
+BlockSolution tsp(vector<City> cities)
 {
     double **distances = computeDistanceMatrix(cities);
     map<long long int, PathCost> solutionsMap;
@@ -37,7 +41,8 @@ void *tsp(vector<City> cities)
         vector<int> simple{0};
         minPath = simple;
         minCost = 0;
-        return (void *)NULL;
+        BlockSolution blockSolution;
+        return blockSolution;
     }
     long long key = 0x00000;
     vector<int> cityNums;
@@ -116,9 +121,7 @@ void *tsp(vector<City> cities)
                     blockSolution.cost = minCost;
                     blockSolution.blockId = procNum;
 
-                    // put in the logic for sending with mpi here
-
-                    break;
+                    return blockSolution;
                 }
                 pathCost.path = minPath;
                 solutionsMap.insert(pair<long long, PathCost>(key, pathCost));
@@ -258,6 +261,7 @@ int main(int argc, char *argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
 
     vector<City> cities;
+    int numBlocks;
     if (procNum == 0)
     {
         BLOCK_SIZE = atoi(argv[2]);
@@ -272,7 +276,7 @@ int main(int argc, char *argv[])
         vector<vector<City>> blockedCities = breakIntoBlocks(cities, BLOCK_SIZE);
         printBlockedCities(blockedCities);
 
-        int numBlocks = (int)blockedCities.size();
+        numBlocks = (int)blockedCities.size();
         for (int i = 1; i < numProcs; i++)
         {
             MPI_Send(&numBlocks, 1, MPI_INT, i, NUM_BLOCKS_TAG, MPI_COMM_WORLD);
@@ -297,7 +301,6 @@ int main(int argc, char *argv[])
     }
     else
     {
-        int numBlocks;
         MPI_Status status;
         MPI_Recv(&numBlocks, 1, MPI_INT, 0, NUM_BLOCKS_TAG, MPI_COMM_WORLD, &status);
         if (procNum > numBlocks)
@@ -317,30 +320,46 @@ int main(int argc, char *argv[])
         {
             cities.push_back(block[i]);
         }
+        BlockSolution solution = tsp(cities);
+        int size = solution.path.size();
+        MPI_Send(&size, 1, MPI_INT, 0, NUM_CITIES_TAG, MPI_COMM_WORLD);
+
+        City *cityPath = (City *)calloc(size, sizeof(City));
+        copy(solution.path.begin(), solution.path.end(), cityPath);
+        MPI_Send(cityPath, size, mpi_city_type, 0, CITIES_RESULT_TAG, MPI_COMM_WORLD);
+        MPI_Send(&solution.cost, 1, MPI_DOUBLE, 0, COST_RESULT_TAG, MPI_COMM_WORLD);
     }
     // lets do the actual work
 
-    // for (int i = 0; i < (int)blockedCities.size(); i++)
-    // {
-    //     TSPArgs *args = new TSPArgs;
-    //     args->threadId = threadIds[i];
-    //     args->cities = blockedCities[i];
-    //     int status = pthread_create(&threads[i], NULL, tsp, (void *)args);
-    // }
-
-    //Run the MPI stuff to pull from all processes here so we can stitch it all back
-
     if (procNum == 0)
     {
-        // TSPSolution solution = stitchBlocks(blockSolutions);
-        // vector<int> bestPathIds{};
-        // for (City city : solution.path)
-        // {
-        // bestPathIds.push_back(city.id);
-        // }
-        // printPath(bestPathIds);
-        // printf("The final cost is %.2f for this set of %i cities\n", solution.cost, (int)cities.size());
-
+        MPI_Status status;
+        int numBlocksrecvd = 0;
+        vector<BlockSolution> blockSolutions{};
+        while (numBlocksrecvd != numBlocks)
+        {
+            int length;
+            MPI_Recv(&length, 1, MPI_INT, MPI_ANY_SOURCE, NUM_CITIES_TAG, MPI_COMM_WORLD, &status);
+            City *cityPath = (City *)calloc(length, sizeof(City));
+            int source = status.MPI_SOURCE;
+            printf("Getting %i cities from node %i\n", length, source);
+            MPI_Recv(cityPath, length, mpi_city_type, source, CITIES_RESULT_TAG, MPI_COMM_WORLD, &status);
+            vector<City> cities;
+            for (int i = 0; i < length; i++)
+            {
+                cities.push_back(cityPath[i]);
+            }
+            double pathCost;
+            MPI_Recv(&pathCost, 1, MPI_DOUBLE, source, COST_RESULT_TAG, MPI_COMM_WORLD, &status);
+            BlockSolution solution;
+            solution.cost = pathCost;
+            solution.path = cities;
+            solution.blockId = source;
+            blockSolutions.push_back(solution);
+            numBlocksrecvd++;
+        }
+        TSPSolution solution = stitchBlocks(blockSolutions);
+        printf("The final cost is %.2f for this set of %i cities\n", solution.cost, (int)cities.size());
         clock_gettime(CLOCK_MONOTONIC_RAW, &end);
         uint64_t diff = (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec) / 1e6;
 
