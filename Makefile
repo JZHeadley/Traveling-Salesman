@@ -16,4 +16,4 @@ clean:
 	rm -f tsp threaded-tsp mpi-tsp
 
 run: all
-	mpirun -np 2 mpi-tsp datasets/100.cities 4
+	mpirun -np 6 mpi-tsp datasets/26.cities 4

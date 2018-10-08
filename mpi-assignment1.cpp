@@ -12,6 +12,8 @@
 int BLOCK_SIZE = 4;
 vector<BlockSolution> blockSolutions{};
 
+int numProcs;
+int procNum;
 vector<City> convPathToCityPath(vector<City> cities, vector<int> positions)
 {
     vector<City> truePath{};
@@ -22,12 +24,8 @@ vector<City> convPathToCityPath(vector<City> cities, vector<int> positions)
     return truePath;
 }
 
-void *tsp(void *args)
+void *tsp(vector<City> cities)
 {
-    TSPArgs *tspArgs = (TSPArgs *)args;
-    int threadId = tspArgs->threadId;
-    vector<City> cities = tspArgs->cities;
-
     double **distances = computeDistanceMatrix(cities);
     map<long long int, PathCost> solutionsMap;
     vector<int> minPath{};
@@ -116,7 +114,7 @@ void *tsp(void *args)
                     BlockSolution blockSolution;
                     blockSolution.path = truePath;
                     blockSolution.cost = minCost;
-                    blockSolution.blockId = threadId;
+                    blockSolution.blockId = procNum;
 
                     // put in the logic for sending with mpi here
 
@@ -237,9 +235,6 @@ int main(int argc, char *argv[])
 {
     struct timespec start, end;
 
-    int numProcs;
-    int procNum;
-
     if (argc < 3)
     {
         printf("Usage:  ./tsp <dataset path> <block width>\n");
@@ -309,7 +304,6 @@ int main(int argc, char *argv[])
         {
             // kill off excess processes if we don't need them since my blocking doesn't split
             // in a way such that we can evenly distribute to all processes
-            // printf("No need for process %i\n", procNum);
             MPI_Finalize();
             return 0;
         }
