@@ -357,6 +357,7 @@ int main(int argc, char *argv[])
             City *cityPath = (City *)calloc(size, sizeof(City));
             copy(solution.path.begin(), solution.path.end(), cityPath);
             MPI_Send(cityPath, size, mpi_city_type, 0, CITIES_RESULT_TAG, MPI_COMM_WORLD);
+            printf("Cost of block %i of process %i was %.2f\n",numBlocksToRecv,procNum,solution.cost);
             MPI_Send(&solution.cost, 1, MPI_DOUBLE, 0, COST_RESULT_TAG, MPI_COMM_WORLD);
             numBlocksToRecv--;
         }
