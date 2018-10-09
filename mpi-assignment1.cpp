@@ -12,6 +12,7 @@
 #define NUM_CITIES_TAG 6666
 #define CITIES_RESULT_TAG 66666
 #define COST_RESULT_TAG 7
+#define NUM_BLOCKS_RECV_TAG 77
 
 int BLOCK_SIZE = 4;
 vector<BlockSolution> blockSolutions{};
@@ -277,15 +278,19 @@ int main(int argc, char *argv[])
         printBlockedCities(blockedCities);
 
         numBlocks = (int)blockedCities.size();
-        for (int i = 1; i < numProcs; i++)
+        for (int i = 1; i < numProcs; i++) // send how many blocks we have to all processes so they know if they're needed
         {
             MPI_Send(&numBlocks, 1, MPI_INT, i, NUM_BLOCKS_TAG, MPI_COMM_WORLD);
         }
+
         if (numBlocks < numProcs - 1)
         {
             for (int i = 0; i < numBlocks; i++)
             {
+                // send number of blocks to be processed to the proccess
                 printf("sending block %i to process %i\n", i, i + 1);
+                int blocksToSend = 1;
+                MPI_Send(&blocksToSend, 1, MPI_INT, i + 1, NUM_BLOCKS_RECV_TAG, MPI_COMM_WORLD);
                 int size = blockedCities[i].size();
                 MPI_Send(&size, 1, MPI_INT, i + 1, BLOCK_NUM_TAG, MPI_COMM_WORLD);
                 City *block = (City *)malloc(size * sizeof(City));
@@ -295,6 +300,24 @@ int main(int argc, char *argv[])
         }
         else // numBlocks >= numProcs - 1
         {
+            int blocksLeft = numBlocks;
+            int blockToSend=0;
+            for (int i = 0; i < numProcs-1; i++) // for each worker process
+            {
+                int blocksToSend = min((int)ceil(numBlocks / (float)(numProcs - 1)), blocksLeft);
+                MPI_Send(&blocksToSend, 1, MPI_INT, i+1, NUM_BLOCKS_RECV_TAG, MPI_COMM_WORLD);
+                for (int j = 0; j < blocksToSend; j++) // send min(ceil(n / (float)numProcesses), numProcessesLeft) processes
+                {
+
+                    int size = blockedCities[i].size();
+                    MPI_Send(&size, 1, MPI_INT, i+1, BLOCK_NUM_TAG, MPI_COMM_WORLD);
+                    City *block = (City *)malloc(size * sizeof(City));
+                    copy(blockedCities[blockToSend].begin(), blockedCities[blockToSend].end(), block);
+                    MPI_Send(block, size, mpi_city_type, i+1, BLOCK_CITIES_TAG, MPI_COMM_WORLD);
+                    blockToSend++;
+                    blocksLeft--;
+                }
+            }
         }
 
         clock_gettime(CLOCK_MONOTONIC_RAW, &start);
@@ -310,24 +333,33 @@ int main(int argc, char *argv[])
             MPI_Finalize();
             return 0;
         }
-        int length;
-        MPI_Recv(&length, 1, MPI_INT, 0, BLOCK_NUM_TAG, MPI_COMM_WORLD, &status);
-        printf("The length of the block will be %i\n", length);
-        City *block = (City *)malloc(length * sizeof(City));
-        MPI_Recv(block, length, mpi_city_type, 0, BLOCK_CITIES_TAG, MPI_COMM_WORLD, &status);
-        vector<City> cities;
-        for (int i = 0; i < length; i++)
-        {
-            cities.push_back(block[i]);
-        }
-        BlockSolution solution = tsp(cities);
-        int size = solution.path.size();
-        MPI_Send(&size, 1, MPI_INT, 0, NUM_CITIES_TAG, MPI_COMM_WORLD);
+        // while we don't have all the blocks we'll do
+        int numBlocksToRecv;
+        MPI_Recv(&numBlocksToRecv, 1, MPI_INT, 0, NUM_BLOCKS_RECV_TAG, MPI_COMM_WORLD, &status);
+        printf("Process %i is still living and is going to receive %i blocks\n", procNum, numBlocksToRecv);
 
-        City *cityPath = (City *)calloc(size, sizeof(City));
-        copy(solution.path.begin(), solution.path.end(), cityPath);
-        MPI_Send(cityPath, size, mpi_city_type, 0, CITIES_RESULT_TAG, MPI_COMM_WORLD);
-        MPI_Send(&solution.cost, 1, MPI_DOUBLE, 0, COST_RESULT_TAG, MPI_COMM_WORLD);
+        while (numBlocksToRecv)
+        {
+            int length;
+            MPI_Recv(&length, 1, MPI_INT, 0, BLOCK_NUM_TAG, MPI_COMM_WORLD, &status);
+            // printf("The length of the block will be %i\n", length);
+            City *block = (City *)malloc(length * sizeof(City));
+            MPI_Recv(block, length, mpi_city_type, 0, BLOCK_CITIES_TAG, MPI_COMM_WORLD, &status);
+            vector<City> cities;
+            for (int i = 0; i < length; i++)
+            {
+                cities.push_back(block[i]);
+            }
+            BlockSolution solution = tsp(cities);
+            int size = solution.path.size();
+            MPI_Send(&size, 1, MPI_INT, 0, NUM_CITIES_TAG, MPI_COMM_WORLD);
+
+            City *cityPath = (City *)calloc(size, sizeof(City));
+            copy(solution.path.begin(), solution.path.end(), cityPath);
+            MPI_Send(cityPath, size, mpi_city_type, 0, CITIES_RESULT_TAG, MPI_COMM_WORLD);
+            MPI_Send(&solution.cost, 1, MPI_DOUBLE, 0, COST_RESULT_TAG, MPI_COMM_WORLD);
+            numBlocksToRecv--;
+        }
     }
     // lets do the actual work
 
