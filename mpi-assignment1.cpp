@@ -263,6 +263,7 @@ int main(int argc, char *argv[])
 
     vector<City> cities;
     int numBlocks;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
     if (procNum == 0)
     {
         BLOCK_SIZE = atoi(argv[2]);
@@ -301,26 +302,24 @@ int main(int argc, char *argv[])
         else // numBlocks >= numProcs - 1
         {
             int blocksLeft = numBlocks;
-            int blockToSend=0;
-            for (int i = 0; i < numProcs-1; i++) // for each worker process
+            int blockToSend = 0;
+            for (int i = 0; i < numProcs - 1; i++) // for each worker process
             {
                 int blocksToSend = min((int)ceil(numBlocks / (float)(numProcs - 1)), blocksLeft);
-                MPI_Send(&blocksToSend, 1, MPI_INT, i+1, NUM_BLOCKS_RECV_TAG, MPI_COMM_WORLD);
+                MPI_Send(&blocksToSend, 1, MPI_INT, i + 1, NUM_BLOCKS_RECV_TAG, MPI_COMM_WORLD);
                 for (int j = 0; j < blocksToSend; j++) // send min(ceil(n / (float)numProcesses), numProcessesLeft) processes
                 {
 
                     int size = blockedCities[i].size();
-                    MPI_Send(&size, 1, MPI_INT, i+1, BLOCK_NUM_TAG, MPI_COMM_WORLD);
+                    MPI_Send(&size, 1, MPI_INT, i + 1, BLOCK_NUM_TAG, MPI_COMM_WORLD);
                     City *block = (City *)malloc(size * sizeof(City));
                     copy(blockedCities[blockToSend].begin(), blockedCities[blockToSend].end(), block);
-                    MPI_Send(block, size, mpi_city_type, i+1, BLOCK_CITIES_TAG, MPI_COMM_WORLD);
+                    MPI_Send(block, size, mpi_city_type, i + 1, BLOCK_CITIES_TAG, MPI_COMM_WORLD);
                     blockToSend++;
                     blocksLeft--;
                 }
             }
         }
-
-        clock_gettime(CLOCK_MONOTONIC_RAW, &start);
     }
     else
     {
@@ -357,7 +356,7 @@ int main(int argc, char *argv[])
             City *cityPath = (City *)calloc(size, sizeof(City));
             copy(solution.path.begin(), solution.path.end(), cityPath);
             MPI_Send(cityPath, size, mpi_city_type, 0, CITIES_RESULT_TAG, MPI_COMM_WORLD);
-            printf("Cost of block %i of process %i was %.2f\n",numBlocksToRecv,procNum,solution.cost);
+            printf("Cost of block %i of process %i was %.2f\n", numBlocksToRecv, procNum, solution.cost);
             MPI_Send(&solution.cost, 1, MPI_DOUBLE, 0, COST_RESULT_TAG, MPI_COMM_WORLD);
             numBlocksToRecv--;
         }
