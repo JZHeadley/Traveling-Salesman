@@ -2,3 +2,4 @@ tsp
 results.*
 .vscode
 threaded-tsp
+mpi-tsp

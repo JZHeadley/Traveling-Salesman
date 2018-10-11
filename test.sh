@@ -1,8 +1,10 @@
 #!/bin/bash
 
-for i in {5..25};
+for i in {2..16};
 do
-    ./genCities.sh ${i} > datasets/${i}.cities
-    output=`./tsp datasets/${i}.cities | tail -n 2`
+    numCities=$(echo 2^${i} | bc)
+    echo $numCities
+    ./genCities.sh ${numCities} > datasets/${numCities}.cities
+    output=`./threaded-tsp datasets/${numCities}.cities | tail -n 2`
     echo ${output} | tee -a results.txt
 done
